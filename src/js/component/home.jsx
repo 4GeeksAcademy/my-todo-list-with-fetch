@@ -1,140 +1,190 @@
 import React, { useState, useEffect } from "react";
 
-function Home() {
-  const [toDoArr, setToDoArr] = useState(["Do work"]);
+const Home = () => {
   const [input, setInput] = useState("");
-  const [usersList, setUsersList] = useState([]);
-  const [userDeleted, setUserDeleted] = useState(true);
-  const [tasks, setTasks] = useState([]);
-  const [selectedUser, setSelectedUser] = useState("");
+  const [items, setItems] = useState([]);
+  const [user, setUser] = useState("diegoggg");
+  const [created, setCreated] = useState(true);
+  const [taskToDelete, setTaskToDelete] = useState(null);
+
+  const submitHandler = (e) => {
+    e.preventDefault();
+    if (input !== "") {
+      items.push(input);
+      document.getElementById("I1").value = "";
+      setInput("");
+
+      const put = [];
+      items.forEach((e) => {
+        const obj = { label: e, done: false };
+        put.push(obj);
+      });
+      fetchPut(put);
+    }
+  };
+
+  const fetchGet = () => {
+    const requestOptions = {
+      method: "GET",
+    };
+
+    fetch(`https://playground.4geeks.com/todo/todos/${user}`, requestOptions)
+      .then((response) => response.json())
+      .then((result) => {
+        result.map((item) => {
+          setItems((e) => [...e, item.label]);
+        });
+      })
+      .catch((error) => console.log("error", error));
+  };
+
+  const fetchPut = (todoPut) => {
+    const myHeaders = new Headers();
+    myHeaders.append("Content-Type", "application/json");
+
+    const requestOptions = {
+      method: "PUT",
+      headers: myHeaders,
+      body: JSON.stringify(todoPut),
+      redirect: "follow",
+    };
+
+    fetch(`https://playground.4geeks.com/todo/todos/${user}`, requestOptions)
+      .then((response) => response.text())
+      .then((result) => console.log(result))
+      .catch((error) => console.log("error", error));
+  };
+
+  const fetchDel = () => {
+    setUser("");
+    const requestOptions = {
+      method: "DELETE",
+      redirect: "follow",
+    };
+
+    fetch(`https://playground.4geeks.com/todo/todos/${user}`, requestOptions)
+      .then((response) => response.text())
+      .then((result) => console.log(result))
+      .catch((error) => console.log("error", error));
+
+    setCreated(false);
+  };
+
+  const fetchPost = () => {
+    const myHeaders = new Headers();
+    myHeaders.append("Content-Type", "application/json");
+
+    const raw = JSON.stringify([]);
+
+    const requestOptions = {
+      method: "POST",
+      headers: myHeaders,
+      body: raw,
+      redirect: "follow",
+    };
+
+    fetch(`https://playground.4geeks.com/todo/todos/${user}`, requestOptions)
+      .then((response) => response.text())
+      .then((result) => console.log(result))
+      .catch((error) => console.log("error", error));
+
+    setCreated(true);
+  };
 
   useEffect(() => {
-    getUsers();
-  }, [userDeleted]);
+    fetchGet();
+  }, []);
 
-  function getUsers() {
-    fetch("https://playground.4geeks.com/todo/users")
-      .then((response) => response.json())
-      .then((data) => setUsersList(data.users));
-  }
-
-  function CreateUser(username) {
-    fetch(`https://playground.4geeks.com/todo/users/${username}`, {
-      method: "POST",
-    })
-      .then((response) => response.json())
-      .then((data) => {
-        if (data.id) {
-          alert("Usuario creado con éxito");
-          setUserDeleted((prev) => !prev);
-        } else {
-          alert("Algo salió mal");
-        }
-      })
-      .catch((error) => console.log(error));
-  }
-
-  function deleteUser(username) {
-    fetch(`https://playground.4geeks.com/todo/${username}`, {
-      method: "DELETE",
-    })
-      .then((data) => {
-        if (data.ok) {
-          alert("Usuario eliminado con éxito");
-          setUserDeleted((prev) => !prev);
-        } else {
-          alert("Algo salió mal");
-        }
-      });
-  }
-
-  function getTasks(username) {
-    fetch(`https://playground.4geeks.com/todo/users/${username}`)
-      .then((response) => response.json())
-      .then((data) => setTasks(data.todos));
-  }
-
-  function addItem() {
-    let result = input.trim();
-    if (!result) {
-      alert("You need to enter valid text!");
-    } else {
-      setToDoArr(toDoArr.concat([result]));
-      setInput("");
-    }
-  }
-
-  const listItems = toDoArr.map((item, index) => (
-    <li className="d-flex justify-content-between hoverParent">
-      <p className="m-2">{item}</p>
-      <button
-        className="btn btn-danger hoverButton"
-        onClick={() => setToDoArr(toDoArr.filter((x, i) => i !== index))}
-      >
-        <i class="fa-solid fa-x"></i>
-      </button>
+  const fTask = items.map((e, i) => (
+    <li
+      key={i}
+      className="list-group-item d-flex justify-content-between"
+      onMouseOver={() => setTaskToDelete(e)}
+    >
+      {e}
+      {taskToDelete === e && (
+        <button
+          type="button"
+          className="btn btn-danger btn-sm"
+          onClick={() => {
+            const newItems = items.filter((item) => item !== e);
+            setItems(newItems);
+            fetchPut(newItems.map((item) => ({ label: item, done: false })));
+          }}
+        >
+          X
+        </button>
+      )}
     </li>
   ));
 
   return (
     <div className="mx-auto" style={{ width: "35vw" }}>
-      <input
-        type="text"
-        value={selectedUser}
-        onChange={(e) => setSelectedUser(e.target.value)}
-        placeholder="Select a user"
-      />
-      <button onClick={() => getTasks(selectedUser)}>Get tasks</button>
-      <button onClick={CreateUser}>Crear usuario</button>
-      <button onClick={deleteUser}>Eliminar usuario</button>
-
-      <label htmlFor="">Lista de usuarios</label>
-      {usersList.map((item, index) => (
-        <h5 key={index}>{item.name}</h5>
-      ))}
-
-      <div className="container">
-        <h1 className="text-center">To Do List</h1>
-
-        <ul>
-          <li className="d-flex">
-            <input
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  addItem();
-                }
-              }}
-              value={input}
-              placeholder="What needs to be done?"
-            />
-            <button className="btn btn-primary" onClick={addItem}>
-              Submit
-            </button>
-          </li>
-
-          {listItems.length === 0 ? (
-            <li>
-              <p className="m-2">No tasks, add a task.</p>
-            </li>
-          ) : (
-            ""
-          )}
-          {listItems}
+      <h1 className="text-center">To Do List</h1>
+      <p>Usuario: {created ? user : "Ninguno"}</p>
+      <div className="card">
+        <form onSubmit={submitHandler}>
+          <input
+            onChange={(e) => setInput(e.target.value)}
+            type="text"
+            placeholder={
+              items.length > 0
+                ? `What needs to be done?`
+                : "No tasks. Add a task"
+            }
+            id="I1"
+          />
+        </form>
+        <ul className="list-group list-group-flush" id="task">
+          {fTask}
         </ul>
-        <p>
-          {listItems.length} item{listItems.length !== 1 ? "s" : ""}
-        </p>
+        <div className="card-footer">
+          <p>
+            {items.length > 0 ? `${items.length} Items left` : "No items left"}
+          </p>
+          <span
+            onClick={() => {
+              setItems([]);
+              fetchPut([{ label: "#", done: false }]);
+            }}
+          >
+            X
+          </span>
+        </div>
+      </div>
+      <div className="container row m-auto p-2 justify-content-between futer">
+        <input
+          formtype="text"
+          placeholder="Nombre de usuario"
+          className="col-6"
+          id="I2"
+          onChange={(e) => setUser(e.target.value)}
+        ></input>
 
-        <h2>Tasks for {selectedUser}</h2>
-        <ul>
-          {tasks.map((task, index) => (
-            <li key={index}>{task}</li>
-          ))}
-        </ul>
+        {created == false ? (
+          <button
+            type="button"
+            className="btn btn-success col-4"
+            onClick={() => {
+              fetchPost(), (I2.value = "");
+            }}
+          >
+            Crear usuario
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="btn btn-danger col-4"
+            onClick={() => {
+              fetchDel(), setItems([]);
+            }}
+          >
+            Borrar usuario
+          </button>
+        )}
       </div>
     </div>
   );
-}
+};
 
 export default Home;
